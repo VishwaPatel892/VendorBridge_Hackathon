@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { StoreProvider, useStore } from "@/lib/store";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -129,6 +129,7 @@ function AppShell() {
         <AppSidebar />
         <div className="flex flex-1 flex-col">
           <header className="no-print sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur">
+            <SidebarTrigger className="-ml-2 md:hidden" />
             <div className="hidden text-sm text-muted-foreground sm:block">
               Welcome back, <span className="font-medium text-foreground">{user.name}</span>
             </div>
