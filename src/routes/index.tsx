@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDistanceToNow } from "date-fns";
+import { FraudAlertWidget } from "@/components/fraud-alert-widget";
 
 export const Route = createFileRoute("/")({
   head: () => ({ meta: [{ title: "Dashboard — VendorBridge" }] }),
@@ -96,6 +97,12 @@ function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {user?.role !== "Vendor" && (
+        <div className="mt-6">
+          <FraudAlertWidget maxItems={3} />
+        </div>
+      )}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

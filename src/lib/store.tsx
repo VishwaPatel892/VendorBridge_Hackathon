@@ -2,9 +2,11 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import {
   seedActivity, seedApprovals, seedInvoices, seedNotifications, seedPOs,
   seedQuotations, seedRFQs, seedUsers, seedVendors,
+  seedFraudAlerts, seedVendorPerformance, seedContracts, seedSavings,
 } from "./mock-data";
 import type {
   ActivityLog, Approval, Invoice, Notification, PurchaseOrder, Quotation, RFQ, Role, User, Vendor,
+  FraudAlert, VendorPerformance, Contract, SavingsRecord, ChatMessage, MultiLevelApproval, ApprovalLevel,
 } from "./types";
 
 interface State {
@@ -18,6 +20,13 @@ interface State {
   notifications: Notification[];
   activity: ActivityLog[];
   theme: "light" | "dark";
+  // Enterprise features
+  fraudAlerts: FraudAlert[];
+  vendorPerformance: VendorPerformance[];
+  contracts: Contract[];
+  savings: SavingsRecord[];
+  chatMessages: ChatMessage[];
+  multiLevelApprovals: MultiLevelApproval[];
 }
 
 interface Actions {
@@ -43,11 +52,21 @@ interface Actions {
   deleteNotification: (id: string) => void;
   pushNotification: (n: Omit<Notification, "id" | "createdAt" | "read">) => void;
   logActivity: (a: Omit<ActivityLog, "id" | "createdAt">) => void;
+  // Enterprise actions
+  dismissFraudAlert: (id: string) => void;
+  addContract: (c: Omit<Contract, "id" | "code" | "createdAt" | "history">) => void;
+  updateContract: (id: string, patch: Partial<Contract>) => void;
+  terminateContract: (id: string, by: string, notes?: string) => void;
+  renewContract: (id: string, newEndDate: string, by: string) => void;
+  addSavingsRecord: (s: Omit<SavingsRecord, "id">) => void;
+  sendChatMessage: (content: string) => void;
+  advanceApprovalLevel: (approvalId: string, status: "Approved" | "Rejected", remarks?: string) => void;
+  createMultiLevelApproval: (base: Omit<Approval, "id" | "createdAt" | "status">) => void;
 }
 
 const Ctx = createContext<(State & Actions) | null>(null);
 
-const KEY = "vendorbridge.v2";
+const KEY = "vendorbridge.v3";
 
 function load(): Partial<State> {
   if (typeof window === "undefined") return {};
@@ -65,6 +84,79 @@ function nextCode(prefix: string, existing: { code: string }[]) {
   return `${prefix}-${year}-${String(next).padStart(3, "0")}`;
 }
 
+const APPROVAL_LEVELS: ApprovalLevel[] = [
+  { level: 1, role: "Procurement Officer", approverName: "Priya Nair", status: "Pending" },
+  { level: 2, role: "Team Lead", approverName: "Rajesh Kumar", status: "Pending" },
+  { level: 3, role: "Manager", approverName: "Manager Rao", status: "Pending" },
+  { level: 4, role: "Finance", approverName: "Sunita Joshi", status: "Pending" },
+  { level: 5, role: "Director", approverName: "Director Mehta", status: "Pending" },
+];
+
+function buildMultiLevelApprovals(approvals: Approval[]): MultiLevelApproval[] {
+  return approvals.map((a) => ({
+    ...a,
+    levels: APPROVAL_LEVELS.map((l) => {
+      if (a.status === "Approved" && l.level <= 3) {
+        return { ...l, status: "Approved" as const, decidedAt: a.decidedAt, remarks: a.remarks };
+      }
+      if (a.status === "Rejected" && l.level === 1) {
+        return { ...l, status: "Rejected" as const, decidedAt: a.decidedAt, remarks: a.remarks };
+      }
+      return { ...l };
+    }),
+    currentLevel: a.status === "Approved" ? 4 : a.status === "Rejected" ? 1 : 1,
+  }));
+}
+
+function generateChatReply(content: string, state: State): string {
+  const q = content.toLowerCase();
+  const { rfqs, approvals, invoices, vendors, quotations, pos, savings } = state;
+
+  if (q.includes("pending") && q.includes("rfq")) {
+    const open = rfqs.filter((r) => r.status === "Open").length;
+    return `You currently have **${open} open RFQ(s)** awaiting vendor quotations. ${open > 0 ? "Would you like me to list them?" : "All RFQs are up to date!"}`;
+  }
+  if (q.includes("approval") || q.includes("approve")) {
+    const pending = approvals.filter((a) => a.status === "Pending").length;
+    return `There are **${pending} approval(s)** currently pending action. Head to the Approvals module to review and decide.`;
+  }
+  if (q.includes("invoice")) {
+    const unpaid = invoices.filter((i) => i.status !== "Paid").length;
+    const total = invoices.reduce((s, i) => s + i.total, 0);
+    return `You have **${unpaid} unpaid invoice(s)** out of ${invoices.length} total. Total invoice value is ₹${total.toLocaleString("en-IN")}.`;
+  }
+  if (q.includes("vendor")) {
+    const active = vendors.filter((v) => v.status === "Active").length;
+    return `There are **${active} active vendor(s)** registered in the system out of ${vendors.length} total. Top rated: ${vendors.sort((a, b) => b.rating - a.rating)[0]?.company}.`;
+  }
+  if (q.includes("spend") || q.includes("budget") || q.includes("cost")) {
+    const totalSpend = invoices.reduce((s, i) => s + i.total, 0);
+    const totalSavings = savings.reduce((s, r) => s + r.savings, 0);
+    return `Total procurement spend this period: **₹${totalSpend.toLocaleString("en-IN")}**. Savings achieved: ₹${totalSavings.toLocaleString("en-IN")} — great work optimizing costs!`;
+  }
+  if (q.includes("quotation") || q.includes("quote")) {
+    const submitted = quotations.filter((q) => q.status === "Submitted").length;
+    return `There are **${submitted} quotation(s)** submitted and under review. ${submitted > 0 ? "Visit the Quotations module for AI-powered vendor recommendations." : "No pending quotations at this time."}`;
+  }
+  if (q.includes("po") || q.includes("purchase order")) {
+    const issued = pos.filter((p) => p.status === "Issued").length;
+    return `**${issued} Purchase Order(s)** are currently issued and awaiting fulfilment.`;
+  }
+  if (q.includes("fraud") || q.includes("alert") || q.includes("risk")) {
+    const alerts = state.fraudAlerts.filter((a) => !a.dismissed);
+    const critical = alerts.filter((a) => a.riskLevel === "Critical").length;
+    const high = alerts.filter((a) => a.riskLevel === "High").length;
+    return `Fraud Detection: **${critical} Critical** and **${high} High** risk alerts are active. Please review the flagged vendors in the quotations module immediately.`;
+  }
+  if (q.includes("hello") || q.includes("hi") || q.includes("hey")) {
+    return `Hello! 👋 I'm your VendorBridge AI Procurement Assistant. I can help you with:\n- Pending RFQs & approvals\n- Invoice status & spend analytics\n- Vendor information & performance\n- Fraud alerts & risk summary\n\nWhat would you like to know?`;
+  }
+  if (q.includes("help") || q.includes("what can you")) {
+    return `I can answer questions about:\n- **RFQs** — "How many open RFQs?"\n- **Approvals** — "How many pending approvals?"\n- **Invoices** — "What are unpaid invoices?"\n- **Vendors** — "How many active vendors?"\n- **Spend** — "What's our total spend?"\n- **Fraud** — "Any fraud alerts?"\n- **Purchase Orders** — "How many issued POs?"\n\nJust ask naturally!`;
+  }
+  return `I understand you're asking about "${content}". For detailed procurement insights, please navigate to the relevant module. I'm best at answering questions about RFQs, approvals, invoices, vendors, spend, and fraud alerts. Try asking "How many pending approvals?" or "What's our total spend?"`;
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [state, setState] = useState<State>({
@@ -78,6 +170,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     notifications: seedNotifications,
     activity: seedActivity,
     theme: "light",
+    fraudAlerts: seedFraudAlerts,
+    vendorPerformance: seedVendorPerformance,
+    contracts: seedContracts,
+    savings: seedSavings,
+    chatMessages: [],
+    multiLevelApprovals: buildMultiLevelApprovals(seedApprovals),
   });
 
   useEffect(() => {
@@ -194,9 +292,63 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         approvals: s.approvals.map((a) =>
           a.id === id ? { ...a, status, remarks, decidedAt: new Date().toISOString(), decidedBy: s.user?.name || "Manager" } : a
         ),
+        multiLevelApprovals: s.multiLevelApprovals.map((a) =>
+          a.id === id ? { ...a, status, remarks, decidedAt: new Date().toISOString(), decidedBy: s.user?.name || "Manager" } : a
+        ),
         notifications: [{ id: rid("n"), type: "approval", message: `Approval ${status.toLowerCase()}: ${s.approvals.find((a) => a.id === id)?.refLabel}`, read: false, createdAt: new Date().toISOString() }, ...s.notifications],
         activity: [{ id: rid("l"), user: s.user?.name || "Manager", action: `${status} ${s.approvals.find((a) => a.id === id)?.refLabel}`, module: "Approval", createdAt: new Date().toISOString() }, ...s.activity],
       }));
+    },
+
+    advanceApprovalLevel(approvalId, status, remarks) {
+      setState((s) => ({
+        ...s,
+        multiLevelApprovals: s.multiLevelApprovals.map((a) => {
+          if (a.id !== approvalId) return a;
+          const now = new Date().toISOString();
+          const updatedLevels = a.levels.map((l) =>
+            l.level === a.currentLevel
+              ? { ...l, status, remarks, decidedAt: now }
+              : l
+          );
+          const nextLevel = status === "Approved" ? a.currentLevel + 1 : a.currentLevel;
+          const isFullyApproved = status === "Approved" && a.currentLevel >= 5;
+          return {
+            ...a,
+            levels: updatedLevels,
+            currentLevel: nextLevel,
+            status: isFullyApproved ? "Approved" : status === "Rejected" ? "Rejected" : "Pending",
+            decidedAt: isFullyApproved || status === "Rejected" ? now : undefined,
+            decidedBy: s.user?.name || "Manager",
+          };
+        }),
+        approvals: s.approvals.map((a) => {
+          if (a.id !== approvalId) return a;
+          const ml = s.multiLevelApprovals.find((m) => m.id === approvalId);
+          if (!ml) return a;
+          return { ...a, status: ml.currentLevel >= 5 && status === "Approved" ? "Approved" : status === "Rejected" ? "Rejected" : "Pending" };
+        }),
+        notifications: [{ id: rid("n"), type: "approval", message: `Approval level ${s.multiLevelApprovals.find((a) => a.id === approvalId)?.currentLevel} ${status.toLowerCase()} by ${s.user?.name}`, read: false, createdAt: new Date().toISOString() }, ...s.notifications],
+      }));
+    },
+
+    createMultiLevelApproval(base) {
+      setState((s) => {
+        const id = rid("a");
+        const now = new Date().toISOString();
+        const approval: Approval = { ...base, id, status: "Pending", createdAt: now };
+        const multi: MultiLevelApproval = {
+          ...approval,
+          levels: APPROVAL_LEVELS.map((l) => ({ ...l, status: "Pending" as const })),
+          currentLevel: 1,
+        };
+        return {
+          ...s,
+          approvals: [approval, ...s.approvals],
+          multiLevelApprovals: [multi, ...s.multiLevelApprovals],
+          notifications: [{ id: rid("n"), type: "approval", message: `New multi-level approval initiated: ${base.refLabel}`, read: false, createdAt: now }, ...s.notifications],
+        };
+      });
     },
 
     createPOFromQuotation(quotationId) {
@@ -238,6 +390,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
       return created;
     },
+
     markInvoiceSent(id) {
       setState((s) => ({ ...s, invoices: s.invoices.map((i) => i.id === id ? { ...i, status: "Sent" } : i) }));
     },
@@ -262,6 +415,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     logActivity(a) {
       setState((s) => ({ ...s, activity: [{ ...a, id: rid("l"), createdAt: new Date().toISOString() }, ...s.activity] }));
     },
+
+    // Enterprise actions
+    dismissFraudAlert(id) {
+      setState((s) => ({ ...s, fraudAlerts: s.fraudAlerts.map((a) => a.id === id ? { ...a, dismissed: true } : a) }));
+    },
+
+    addContract(c) {
+      setState((s) => {
+        const code = nextCode("CON", s.contracts);
+        const now = new Date().toISOString();
+        const contract: Contract = {
+          ...c, id: rid("c"), code, createdAt: now,
+          history: [{ action: "Contract Created", by: s.user?.name || "Officer", at: now }],
+        };
+        return {
+          ...s,
+          contracts: [contract, ...s.contracts],
+          notifications: [{ id: rid("n"), type: "po", message: `Contract ${code} created with vendor`, read: false, createdAt: now }, ...s.notifications],
+          activity: [{ id: rid("l"), user: s.user?.name || "Officer", action: `Created ${code}`, module: "Contract", createdAt: now }, ...s.activity],
+        };
+      });
+    },
+
+    updateContract(id, patch) {
+      setState((s) => ({ ...s, contracts: s.contracts.map((c) => c.id === id ? { ...c, ...patch } : c) }));
+    },
+
+    terminateContract(id, by, notes) {
+      setState((s) => ({
+        ...s,
+        contracts: s.contracts.map((c) =>
+          c.id === id
+            ? { ...c, status: "Terminated" as const, history: [...c.history, { action: "Contract Terminated", by, at: new Date().toISOString(), notes }] }
+            : c
+        ),
+      }));
+    },
+
+    renewContract(id, newEndDate, by) {
+      setState((s) => ({
+        ...s,
+        contracts: s.contracts.map((c) =>
+          c.id === id
+            ? { ...c, status: "Renewed" as const, endDate: newEndDate, renewalAlert: false, history: [...c.history, { action: "Contract Renewed", by, at: new Date().toISOString() }] }
+            : c
+        ),
+      }));
+    },
+
+    addSavingsRecord(s_rec) {
+      setState((s) => ({ ...s, savings: [{ ...s_rec, id: rid("sav") }, ...s.savings] }));
+    },
+
+    sendChatMessage(content) {
+      setState((s) => {
+        const userMsg: ChatMessage = { id: rid("msg"), role: "user", content, timestamp: new Date().toISOString() };
+        const reply = generateChatReply(content, s);
+        const assistantMsg: ChatMessage = { id: rid("msg"), role: "assistant", content: reply, timestamp: new Date().toISOString() };
+        return { ...s, chatMessages: [...s.chatMessages, userMsg, assistantMsg] };
+      });
+    },
   }), []);
 
   return <Ctx.Provider value={{ ...state, ...actions }}>{children}</Ctx.Provider>;
@@ -274,7 +488,7 @@ export function useStore() {
 }
 
 // AI vendor recommendation: 40% price, 30% delivery, 30% rating (normalized)
-export function recommendVendor(quotations: Quotation[], vendors: Vendor[]) {
+export function recommendVendor(quotations: Quotation[], vendors: import("./types").Vendor[], performance?: import("./types").VendorPerformance[]) {
   if (!quotations.length) return null;
   const prices = quotations.map((q) => q.price);
   const deliveries = quotations.map((q) => q.deliveryDays);
@@ -282,11 +496,13 @@ export function recommendVendor(quotations: Quotation[], vendors: Vendor[]) {
   const minD = Math.min(...deliveries), maxD = Math.max(...deliveries);
   const scored = quotations.map((q) => {
     const v = vendors.find((x) => x.id === q.vendorId);
+    const perf = performance?.find((p) => p.vendorId === q.vendorId);
     const priceScore = maxP === minP ? 1 : 1 - (q.price - minP) / (maxP - minP);
     const deliveryScore = maxD === minD ? 1 : 1 - (q.deliveryDays - minD) / (maxD - minD);
     const ratingScore = (v?.rating ?? 0) / 5;
-    const score = priceScore * 0.4 + deliveryScore * 0.3 + ratingScore * 0.3;
-    return { quotation: q, vendor: v, score, priceScore, deliveryScore, ratingScore };
+    const perfScore = perf ? perf.overallScore / 100 : ratingScore;
+    const score = priceScore * 0.35 + deliveryScore * 0.25 + ratingScore * 0.2 + perfScore * 0.2;
+    return { quotation: q, vendor: v, score, priceScore, deliveryScore, ratingScore, perfScore };
   });
   scored.sort((a, b) => b.score - a.score);
   return scored;

@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Building2, FileText, Quote, ShieldCheck,
   ShoppingCart, Receipt, BarChart3, Bell, UserCircle, LogOut, Boxes,
-  Activity, PanelLeftClose, PanelLeftOpen,
+  Activity, PanelLeftClose, PanelLeftOpen, FileSignature, TrendingUp,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -17,10 +17,14 @@ interface NavItem { title: string; url: string; icon: typeof LayoutDashboard; ro
 
 const NAV: NavItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["Admin", "Procurement Officer", "Vendor", "Manager"] },
+  { title: "Vendor Portal", url: "/vendor-portal", icon: LayoutDashboard, roles: ["Vendor"] },
   { title: "Vendors", url: "/vendors", icon: Building2, roles: ["Admin", "Procurement Officer", "Manager"] },
   { title: "RFQs", url: "/rfqs", icon: FileText, roles: ["Admin", "Procurement Officer", "Vendor", "Manager"] },
   { title: "Quotations", url: "/quotations", icon: Quote, roles: ["Admin", "Procurement Officer", "Vendor"] },
   { title: "Approvals", url: "/approvals", icon: ShieldCheck, roles: ["Admin", "Manager"] },
+  { title: "Contracts", url: "/contracts", icon: FileSignature, roles: ["Admin", "Procurement Officer", "Manager"] },
+  { title: "Vendor Performance", url: "/vendor-performance", icon: BarChart3, roles: ["Admin", "Procurement Officer", "Manager"] },
+  { title: "Savings Tracker", url: "/savings", icon: TrendingUp, roles: ["Admin", "Manager"] },
   { title: "Purchase Orders", url: "/purchase-orders", icon: ShoppingCart, roles: ["Admin", "Procurement Officer", "Vendor", "Manager"] },
   { title: "Invoices", url: "/invoices", icon: Receipt, roles: ["Admin", "Procurement Officer", "Vendor"] },
   { title: "Reports", url: "/reports", icon: BarChart3, roles: ["Admin", "Manager"] },

@@ -29,7 +29,7 @@ const STEPS = ["RFQ Details", "Line Items & Vendors", "Quotations"];
 function RFQDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { rfqs, vendors, quotations, user, submitQuotation, createPOFromQuotation, sendRFQToVendors, saveRFQAsDraft } = useStore();
+  const { rfqs, vendors, quotations, user, submitQuotation, createPOFromQuotation, sendRFQToVendors, saveRFQAsDraft, vendorPerformance, fraudAlerts } = useStore();
   const rfq = rfqs.find((r) => r.id === id);
 
   const [activeStep, setActiveStep] = useState(0);
@@ -49,7 +49,7 @@ function RFQDetail() {
   }
 
   const rfqQuotes = quotations.filter((q) => q.rfqId === rfq.id);
-  const scored = recommendVendor(rfqQuotes, vendors) || [];
+  const scored = recommendVendor(rfqQuotes, vendors, vendorPerformance) || [];
   const best = scored[0];
   const isAssignedVendor = user?.role === "Vendor" && user.vendorId && rfq.assignedVendorIds.includes(user.vendorId);
   const alreadyQuoted = isAssignedVendor && rfqQuotes.some((q) => q.vendorId === user.vendorId);
@@ -360,12 +360,18 @@ function RFQDetail() {
                 <TableBody>
                   {scored.map((s, i) => {
                     const isLowest = s.quotation.price === Math.min(...scored.map((x) => x.quotation.price));
+                    const isFlagged = fraudAlerts.some((a) => !a.dismissed && a.vendorId === s.vendor?.id);
                     return (
                       <TableRow key={s.quotation.id} className={i === 0 ? "bg-primary/5" : ""}>
                         <TableCell>
                           <div className="flex items-center gap-2 font-medium">
                             {i === 0 && <Trophy className="h-4 w-4 text-primary" />}
                             {s.vendor?.company}
+                            {isFlagged && (
+                              <span className="rounded bg-rose-500/20 border border-rose-500/30 px-1.5 py-0.5 text-[9px] font-bold text-rose-600 dark:text-rose-400 animate-pulse">
+                                ⚠️ FLAGGED
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs text-muted-foreground">{s.quotation.notes || "—"}</div>
                         </TableCell>
@@ -386,7 +392,11 @@ function RFQDetail() {
                         </TableCell>
                         <TableCell className="text-right">
                           {canCreate && rfq.status !== "Awarded" && (
-                            <Button size="sm" onClick={() => award(s.quotation.id)}>
+                            <Button 
+                              size="sm" 
+                              variant={isFlagged ? "destructive" : "default"}
+                              onClick={() => award(s.quotation.id)}
+                            >
                               Award <ChevronRight className="ml-1 h-3.5 w-3.5" />
                             </Button>
                           )}
