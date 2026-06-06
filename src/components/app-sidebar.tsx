@@ -1,7 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Building2, FileText, Quote, GitCompare, ShieldCheck,
+  LayoutDashboard, Building2, FileText, Quote, ShieldCheck,
   ShoppingCart, Receipt, BarChart3, Bell, UserCircle, LogOut, Boxes,
+  Activity, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -23,12 +24,13 @@ const NAV: NavItem[] = [
   { title: "Purchase Orders", url: "/purchase-orders", icon: ShoppingCart, roles: ["Admin", "Procurement Officer", "Vendor", "Manager"] },
   { title: "Invoices", url: "/invoices", icon: Receipt, roles: ["Admin", "Procurement Officer", "Vendor"] },
   { title: "Reports", url: "/reports", icon: BarChart3, roles: ["Admin", "Manager"] },
+  { title: "Activity", url: "/activity", icon: Activity, roles: ["Admin", "Procurement Officer", "Vendor", "Manager"] },
   { title: "Notifications", url: "/notifications", icon: Bell, roles: ["Admin", "Procurement Officer", "Vendor", "Manager"] },
   { title: "Profile", url: "/profile", icon: UserCircle, roles: ["Admin", "Procurement Officer", "Vendor", "Manager"] },
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, logout, notifications } = useStore();
@@ -38,16 +40,37 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-3">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+        <div className={`flex items-center ${collapsed ? "flex-col gap-2 py-3 px-0" : "gap-3 px-2 py-3"}`}>
+          {/* Logo */}
+          <div
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+            style={{ borderRadius: collapsed ? "10px" : "10px" }}
+          >
             <Boxes className="h-5 w-5" />
           </div>
+
+          {/* Title — only when expanded */}
           {!collapsed && (
-            <div className="leading-tight">
-              <div className="font-display text-base font-semibold text-sidebar-foreground">VendorBridge</div>
+            <div className="flex-1 leading-tight min-w-0">
+              <div className="font-display text-base font-semibold text-sidebar-foreground truncate">VendorBridge</div>
               <div className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60">Procurement ERP</div>
             </div>
           )}
+
+          {/* Toggle button */}
+          <button
+            onClick={toggleSidebar}
+            className={`grid place-items-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${
+              collapsed ? "h-8 w-8" : "h-7 w-7 shrink-0"
+            }`}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
         </div>
       </SidebarHeader>
 
@@ -60,7 +83,7 @@ export function AppSidebar() {
                 const active = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
                 return (
                   <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={active}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
                       <Link to={item.url} className="flex items-center gap-2">
                         <item.icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span className="flex-1">{item.title}</span>}
@@ -90,9 +113,11 @@ export function AppSidebar() {
           </div>
         )}
         {user && collapsed && (
-          <Button variant="ghost" size="icon" className="mx-auto text-sidebar-foreground hover:bg-sidebar-accent" onClick={logout}>
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <SidebarMenuButton tooltip="Sign out" asChild>
+            <button className="mx-auto text-sidebar-foreground hover:bg-sidebar-accent" onClick={logout}>
+              <LogOut className="h-4 w-4" />
+            </button>
+          </SidebarMenuButton>
         )}
       </SidebarFooter>
     </Sidebar>

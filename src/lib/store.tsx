@@ -38,6 +38,9 @@ interface Actions {
   markInvoiceSent: (id: string) => void;
   markInvoicePaid: (id: string) => void;
   markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
+  clearAllNotifications: () => void;
+  deleteNotification: (id: string) => void;
   pushNotification: (n: Omit<Notification, "id" | "createdAt" | "read">) => void;
   logActivity: (a: Omit<ActivityLog, "id" | "createdAt">) => void;
 }
@@ -243,6 +246,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     markNotificationRead(id) {
       setState((s) => ({ ...s, notifications: s.notifications.map((n) => n.id === id ? { ...n, read: true } : n) }));
+    },
+    markAllNotificationsRead() {
+      setState((s) => ({ ...s, notifications: s.notifications.map((n) => ({ ...n, read: true })) }));
+    },
+    clearAllNotifications() {
+      setState((s) => ({ ...s, notifications: [] }));
+    },
+    deleteNotification(id) {
+      setState((s) => ({ ...s, notifications: s.notifications.filter((n) => n.id !== id) }));
     },
     pushNotification(n) {
       setState((s) => ({ ...s, notifications: [{ ...n, id: rid("n"), read: false, createdAt: new Date().toISOString() }, ...s.notifications] }));

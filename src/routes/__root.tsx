@@ -7,13 +7,14 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { StoreProvider, useStore } from "@/lib/store";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Bell } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import LoginPage from "@/routes/login";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
@@ -99,26 +100,37 @@ function AppShell() {
   const { user, theme, setTheme, notifications } = useStore();
   if (!user) return <LoginPage />;
   const unread = notifications.filter((n) => !n.read).length;
+  const initials = user.name.split(" ").map((s) => s[0]).join("").slice(0, 2);
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex flex-1 flex-col">
-          <header className="no-print sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-3 backdrop-blur">
-            <SidebarTrigger />
-            <div className="ml-2 hidden text-sm text-muted-foreground sm:block">
+          <header className="no-print sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur">
+            <div className="hidden text-sm text-muted-foreground sm:block">
               Welcome back, <span className="font-medium text-foreground">{user.name}</span>
             </div>
-            <div className="ml-auto flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-1.5">
               <Button variant="ghost" size="icon" asChild>
                 <Link to="/notifications" className="relative">
                   <Bell className="h-4 w-4" />
-                  {unread > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary-glow" />}
+                  {unread > 0 && (
+                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-glow px-1 text-[10px] font-bold text-sidebar-primary-foreground">
+                      {unread}
+                    </span>
+                  )}
                 </Link>
               </Button>
               <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
+              <Link to="/profile" className="ml-1">
+                <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-transparent transition-all hover:ring-primary/50">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
             </div>
           </header>
           <main className="flex-1 p-4 sm:p-6 lg:p-8"><Outlet /></main>
