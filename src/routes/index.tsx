@@ -89,8 +89,8 @@ function Dashboard() {
                   <YAxis stroke="var(--color-muted-foreground)" fontSize={12} />
                   <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 8 }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="rfqs" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pos" fill="var(--color-primary-glow)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="rfqs" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="pos" fill="var(--color-chart-2)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
