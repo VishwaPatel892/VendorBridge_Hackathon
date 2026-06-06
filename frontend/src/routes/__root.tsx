@@ -7,7 +7,6 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { StoreProvider, useStore } from "@/lib/store";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -19,11 +18,13 @@ import LoginPage from "@/routes/login";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChatAssistant } from "@/components/chat-assistant";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
+import useInactivityTimer from "@/hooks/useInactivityTimer";
+import SessionTimeoutModal from "@/components/SessionTimeoutModal";
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => { reportLovableError(error, { boundary: "tanstack_root_error_component" }); }, [error]);
+  useEffect(() => { console.error(error); }, [error]);
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -57,14 +58,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "VendorBridge — Procurement & Vendor Management ERP" },
       { name: "description", content: "End-to-end procurement: vendors, RFQs, quotations, approvals, POs, invoices, and analytics." },
-      { property: "og:title", content: "VendorBridge — Procurement & Vendor Management ERP" },
-      { name: "twitter:title", content: "VendorBridge — Procurement & Vendor Management ERP" },
-      { property: "og:description", content: "End-to-end procurement: vendors, RFQs, quotations, approvals, POs, invoices, and analytics." },
-      { name: "twitter:description", content: "End-to-end procurement: vendors, RFQs, quotations, approvals, POs, invoices, and analytics." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d141c24c-21f7-40bd-88cb-be0cfcdd6e64/id-preview-3658616d--9e703842-5048-4755-84a5-3dcb7709af49.lovable.app-1780717565144.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d141c24c-21f7-40bd-88cb-be0cfcdd6e64/id-preview-3658616d--9e703842-5048-4755-84a5-3dcb7709af49.lovable.app-1780717565144.png" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -72,6 +65,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" },
     ],
+    scripts: [
+      { src: "https://accounts.google.com/gsi/client", async: true, defer: true }
+    ]
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -118,6 +114,8 @@ const nColors: Record<string, string> = {
 
 function AppShell() {
   const { user, theme, setTheme, notifications, markNotificationRead, markAllNotificationsRead } = useStore();
+  const { showWarning, stayLoggedIn, handleLogout } = useInactivityTimer();
+
   if (!user) return <LoginPage />;
   const unread = notifications.filter((n) => !n.read).length;
   const initials = user.name.split(" ").map((s) => s[0]).join("").slice(0, 2);
@@ -239,6 +237,7 @@ function AppShell() {
         </div>
       </div>
       <ChatAssistant />
+      {showWarning && <SessionTimeoutModal onStayLoggedIn={stayLoggedIn} onLogout={handleLogout} />}
     </SidebarProvider>
   );
 }
