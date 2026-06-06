@@ -10,6 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VendorsRouteImport } from './routes/vendors'
+import { Route as VendorPortalRouteImport } from './routes/vendor-portal'
+import { Route as VendorPerformanceRouteImport } from './routes/vendor-performance'
+import { Route as SavingsRouteImport } from './routes/savings'
 import { Route as RfqsRouteImport } from './routes/rfqs'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuotationsRouteImport } from './routes/quotations'
@@ -18,6 +21,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InvoicesRouteImport } from './routes/invoices'
+import { Route as ContractsRouteImport } from './routes/contracts'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,6 +31,21 @@ import { Route as InvoicesIdRouteImport } from './routes/invoices.$id'
 const VendorsRoute = VendorsRouteImport.update({
   id: '/vendors',
   path: '/vendors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VendorPortalRoute = VendorPortalRouteImport.update({
+  id: '/vendor-portal',
+  path: '/vendor-portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VendorPerformanceRoute = VendorPerformanceRouteImport.update({
+  id: '/vendor-performance',
+  path: '/vendor-performance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SavingsRoute = SavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RfqsRoute = RfqsRouteImport.update({
@@ -69,6 +88,11 @@ const InvoicesRoute = InvoicesRouteImport.update({
   path: '/invoices',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContractsRoute = ContractsRouteImport.update({
+  id: '/contracts',
+  path: '/contracts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApprovalsRoute = ApprovalsRouteImport.update({
   id: '/approvals',
   path: '/approvals',
@@ -99,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/approvals': typeof ApprovalsRoute
+  '/contracts': typeof ContractsRoute
   '/invoices': typeof InvoicesRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -107,6 +132,9 @@ export interface FileRoutesByFullPath {
   '/quotations': typeof QuotationsRoute
   '/reports': typeof ReportsRoute
   '/rfqs': typeof RfqsRouteWithChildren
+  '/savings': typeof SavingsRoute
+  '/vendor-performance': typeof VendorPerformanceRoute
+  '/vendor-portal': typeof VendorPortalRoute
   '/vendors': typeof VendorsRoute
   '/invoices/$id': typeof InvoicesIdRoute
   '/rfqs/$id': typeof RfqsIdRoute
@@ -115,6 +143,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/approvals': typeof ApprovalsRoute
+  '/contracts': typeof ContractsRoute
   '/invoices': typeof InvoicesRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -123,6 +152,9 @@ export interface FileRoutesByTo {
   '/quotations': typeof QuotationsRoute
   '/reports': typeof ReportsRoute
   '/rfqs': typeof RfqsRouteWithChildren
+  '/savings': typeof SavingsRoute
+  '/vendor-performance': typeof VendorPerformanceRoute
+  '/vendor-portal': typeof VendorPortalRoute
   '/vendors': typeof VendorsRoute
   '/invoices/$id': typeof InvoicesIdRoute
   '/rfqs/$id': typeof RfqsIdRoute
@@ -132,6 +164,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/approvals': typeof ApprovalsRoute
+  '/contracts': typeof ContractsRoute
   '/invoices': typeof InvoicesRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
@@ -140,6 +173,9 @@ export interface FileRoutesById {
   '/quotations': typeof QuotationsRoute
   '/reports': typeof ReportsRoute
   '/rfqs': typeof RfqsRouteWithChildren
+  '/savings': typeof SavingsRoute
+  '/vendor-performance': typeof VendorPerformanceRoute
+  '/vendor-portal': typeof VendorPortalRoute
   '/vendors': typeof VendorsRoute
   '/invoices/$id': typeof InvoicesIdRoute
   '/rfqs/$id': typeof RfqsIdRoute
@@ -150,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/approvals'
+    | '/contracts'
     | '/invoices'
     | '/login'
     | '/notifications'
@@ -158,6 +195,9 @@ export interface FileRouteTypes {
     | '/quotations'
     | '/reports'
     | '/rfqs'
+    | '/savings'
+    | '/vendor-performance'
+    | '/vendor-portal'
     | '/vendors'
     | '/invoices/$id'
     | '/rfqs/$id'
@@ -166,6 +206,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/approvals'
+    | '/contracts'
     | '/invoices'
     | '/login'
     | '/notifications'
@@ -174,6 +215,9 @@ export interface FileRouteTypes {
     | '/quotations'
     | '/reports'
     | '/rfqs'
+    | '/savings'
+    | '/vendor-performance'
+    | '/vendor-portal'
     | '/vendors'
     | '/invoices/$id'
     | '/rfqs/$id'
@@ -182,6 +226,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/approvals'
+    | '/contracts'
     | '/invoices'
     | '/login'
     | '/notifications'
@@ -190,6 +235,9 @@ export interface FileRouteTypes {
     | '/quotations'
     | '/reports'
     | '/rfqs'
+    | '/savings'
+    | '/vendor-performance'
+    | '/vendor-portal'
     | '/vendors'
     | '/invoices/$id'
     | '/rfqs/$id'
@@ -199,6 +247,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityRoute: typeof ActivityRoute
   ApprovalsRoute: typeof ApprovalsRoute
+  ContractsRoute: typeof ContractsRoute
   InvoicesRoute: typeof InvoicesRouteWithChildren
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -207,6 +256,9 @@ export interface RootRouteChildren {
   QuotationsRoute: typeof QuotationsRoute
   ReportsRoute: typeof ReportsRoute
   RfqsRoute: typeof RfqsRouteWithChildren
+  SavingsRoute: typeof SavingsRoute
+  VendorPerformanceRoute: typeof VendorPerformanceRoute
+  VendorPortalRoute: typeof VendorPortalRoute
   VendorsRoute: typeof VendorsRoute
 }
 
@@ -217,6 +269,27 @@ declare module '@tanstack/react-router' {
       path: '/vendors'
       fullPath: '/vendors'
       preLoaderRoute: typeof VendorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vendor-portal': {
+      id: '/vendor-portal'
+      path: '/vendor-portal'
+      fullPath: '/vendor-portal'
+      preLoaderRoute: typeof VendorPortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vendor-performance': {
+      id: '/vendor-performance'
+      path: '/vendor-performance'
+      fullPath: '/vendor-performance'
+      preLoaderRoute: typeof VendorPerformanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/savings': {
+      id: '/savings'
+      path: '/savings'
+      fullPath: '/savings'
+      preLoaderRoute: typeof SavingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rfqs': {
@@ -273,6 +346,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof InvoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contracts': {
+      id: '/contracts'
+      path: '/contracts'
+      fullPath: '/contracts'
+      preLoaderRoute: typeof ContractsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/approvals': {
@@ -339,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
   ApprovalsRoute: ApprovalsRoute,
+  ContractsRoute: ContractsRoute,
   InvoicesRoute: InvoicesRouteWithChildren,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
@@ -347,6 +428,9 @@ const rootRouteChildren: RootRouteChildren = {
   QuotationsRoute: QuotationsRoute,
   ReportsRoute: ReportsRoute,
   RfqsRoute: RfqsRouteWithChildren,
+  SavingsRoute: SavingsRoute,
+  VendorPerformanceRoute: VendorPerformanceRoute,
+  VendorPortalRoute: VendorPortalRoute,
   VendorsRoute: VendorsRoute,
 }
 export const routeTree = rootRouteImport

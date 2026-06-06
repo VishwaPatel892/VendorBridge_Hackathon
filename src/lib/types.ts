@@ -111,3 +111,104 @@ export interface ActivityLog {
   module: string;
   createdAt: string;
 }
+
+// ── Enterprise Feature Types ─────────────────────────────────────
+
+export type RiskLevel = "Low" | "Medium" | "High" | "Critical";
+
+export type FraudAlertType =
+  | "duplicate_vendor"
+  | "abnormal_pricing"
+  | "gst_duplication"
+  | "suspicious_quotation"
+  | "procurement_anomaly";
+
+export interface FraudAlert {
+  id: string;
+  vendorId?: string;
+  rfqId?: string;
+  quotationId?: string;
+  type: FraudAlertType;
+  riskLevel: RiskLevel;
+  description: string;
+  detectedAt: string;
+  dismissed: boolean;
+}
+
+export interface VendorPerformance {
+  vendorId: string;
+  deliveryScore: number;   // 0-100
+  qualityScore: number;
+  responseScore: number;
+  complianceScore: number;
+  overallScore: number;
+  lastUpdated: string;
+}
+
+export type ContractStatus = "Active" | "Expired" | "Terminated" | "Renewed";
+
+export interface ContractDocument {
+  name: string;
+  size: number;
+  uploadedAt: string;
+}
+
+export interface ContractHistoryEntry {
+  action: string;
+  by: string;
+  at: string;
+  notes?: string;
+}
+
+export interface Contract {
+  id: string;
+  code: string;
+  vendorId: string;
+  poId?: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  value: number;
+  status: ContractStatus;
+  renewalAlert: boolean;
+  documents: ContractDocument[];
+  notes: string;
+  createdAt: string;
+  createdBy: string;
+  history: ContractHistoryEntry[];
+}
+
+export type ApprovalLevelStatus = "Pending" | "Approved" | "Rejected" | "Skipped";
+
+export interface ApprovalLevel {
+  level: number;
+  role: string;
+  approverName: string;
+  status: ApprovalLevelStatus;
+  remarks?: string;
+  decidedAt?: string;
+}
+
+export interface MultiLevelApproval extends Approval {
+  levels: ApprovalLevel[];
+  currentLevel: number;
+}
+
+export interface SavingsRecord {
+  id: string;
+  rfqId: string;
+  rfqCode: string;
+  rfqBudget: number;
+  approvedCost: number;
+  savings: number;
+  savingsPct: number;
+  month: string;
+  vendorId: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}

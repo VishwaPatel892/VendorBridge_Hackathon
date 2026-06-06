@@ -126,3 +126,101 @@ export const procurementTrend = [
   { month: "Nov", rfqs: 11, pos: 9 },
   { month: "Dec", rfqs: 9, pos: 7 },
 ];
+
+import type {
+  FraudAlert, VendorPerformance, Contract, SavingsRecord,
+} from "./types";
+
+export const seedFraudAlerts: FraudAlert[] = [
+  {
+    id: "fa1", vendorId: "v4", rfqId: "r2", quotationId: "q4",
+    type: "abnormal_pricing", riskLevel: "High",
+    description: "Quotation from Granite & Co is 18% below market rate — potential bid manipulation or low-quality materials.",
+    detectedAt: daysAgo(2), dismissed: false,
+  },
+  {
+    id: "fa2", vendorId: "v4",
+    type: "gst_duplication", riskLevel: "Critical",
+    description: "GST number 24AAFCG2233L1Z2 (Granite & Co) matches a flagged entity in the national procurement watchlist.",
+    detectedAt: daysAgo(3), dismissed: false,
+  },
+  {
+    id: "fa3", vendorId: "v2", rfqId: "r1",
+    type: "suspicious_quotation", riskLevel: "Medium",
+    description: "Nimbus Office Solutions submitted a quotation ₹57,000 above their historical average for similar RFQs.",
+    detectedAt: daysAgo(5), dismissed: false,
+  },
+  {
+    id: "fa4",
+    type: "procurement_anomaly", riskLevel: "Low",
+    description: "Unusual spike in RFQ creation (4 RFQs in 1 day) detected — may indicate process bypass.",
+    detectedAt: daysAgo(7), dismissed: true,
+  },
+];
+
+export const seedVendorPerformance: VendorPerformance[] = [
+  { vendorId: "v1", deliveryScore: 91, qualityScore: 88, responseScore: 85, complianceScore: 90, overallScore: 88.5, lastUpdated: daysAgo(2) },
+  { vendorId: "v2", deliveryScore: 82, qualityScore: 86, responseScore: 78, complianceScore: 84, overallScore: 82.5, lastUpdated: daysAgo(2) },
+  { vendorId: "v3", deliveryScore: 95, qualityScore: 96, responseScore: 92, complianceScore: 95, overallScore: 94.5, lastUpdated: daysAgo(2) },
+  { vendorId: "v4", deliveryScore: 55, qualityScore: 60, responseScore: 48, complianceScore: 50, overallScore: 53.3, lastUpdated: daysAgo(2) },
+  { vendorId: "v5", deliveryScore: 78, qualityScore: 74, responseScore: 80, complianceScore: 77, overallScore: 77.3, lastUpdated: daysAgo(2) },
+];
+
+export const seedContracts: Contract[] = [
+  {
+    id: "c1", code: "CON-2026-001", vendorId: "v2", poId: "po1",
+    title: "Office Furniture Supply & Installation Agreement",
+    startDate: daysAgo(17), endDate: daysAhead(348),
+    value: 880000, status: "Active", renewalAlert: false,
+    documents: [{ name: "contract_nimbus.pdf", size: 245760, uploadedAt: daysAgo(17) }],
+    notes: "Includes 1-year maintenance warranty post installation.",
+    createdAt: daysAgo(17), createdBy: "Priya Nair",
+    history: [
+      { action: "Contract Created", by: "Priya Nair", at: daysAgo(17) },
+      { action: "Approved by Manager", by: "Manager Rao", at: daysAgo(16), notes: "Standard terms accepted." },
+    ],
+  },
+  {
+    id: "c2", code: "CON-2025-004", vendorId: "v1",
+    title: "Industrial Raw Material Annual Supply",
+    startDate: daysAgo(200), endDate: daysAhead(30),
+    value: 4200000, status: "Active", renewalAlert: true,
+    documents: [{ name: "acme_annual_contract.pdf", size: 512000, uploadedAt: daysAgo(200) }],
+    notes: "Auto-renewal clause active. Review before expiry.",
+    createdAt: daysAgo(200), createdBy: "Admin User",
+    history: [
+      { action: "Contract Created", by: "Admin User", at: daysAgo(200) },
+      { action: "Renewed for 2025-26", by: "Manager Rao", at: daysAgo(150) },
+    ],
+  },
+  {
+    id: "c3", code: "CON-2025-002", vendorId: "v4",
+    title: "Construction Materials Pilot Agreement",
+    startDate: daysAgo(300), endDate: daysAgo(10),
+    value: 1500000, status: "Expired", renewalAlert: false,
+    documents: [],
+    notes: "Pilot contract — not renewed due to quality issues.",
+    createdAt: daysAgo(300), createdBy: "Admin User",
+    history: [
+      { action: "Contract Created", by: "Admin User", at: daysAgo(300) },
+      { action: "Contract Expired", by: "System", at: daysAgo(10) },
+    ],
+  },
+];
+
+export const seedSavings: SavingsRecord[] = [
+  { id: "sav1", rfqId: "r3", rfqCode: "RFQ-2026-003", rfqBudget: 1000000, approvedCost: 880000, savings: 120000, savingsPct: 12, month: "Dec", vendorId: "v2" },
+  { id: "sav2", rfqId: "r1", rfqCode: "RFQ-2026-001", rfqBudget: 1700000, approvedCost: 1488000, savings: 212000, savingsPct: 12.5, month: "Dec", vendorId: "v3" },
+  { id: "sav3", rfqId: "r2", rfqCode: "RFQ-2026-002", rfqBudget: 380000, approvedCost: 312500, savings: 67500, savingsPct: 17.8, month: "Nov", vendorId: "v1" },
+  { id: "sav4", rfqId: "r4", rfqCode: "RFQ-2026-004", rfqBudget: 200000, approvedCost: 180000, savings: 20000, savingsPct: 10, month: "Nov", vendorId: "v5" },
+];
+
+export const monthlySavings = [
+  { month: "Jul", budget: 560000, actual: 480000, savings: 80000 },
+  { month: "Aug", budget: 800000, actual: 720000, savings: 80000 },
+  { month: "Sep", budget: 620000, actual: 540000, savings: 80000 },
+  { month: "Oct", budget: 1100000, actual: 980000, savings: 120000 },
+  { month: "Nov", budget: 1400000, actual: 1240000, savings: 160000 },
+  { month: "Dec", budget: 1350000, actual: 1038400, savings: 311600 },
+];
+
