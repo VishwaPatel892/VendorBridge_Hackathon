@@ -60,40 +60,92 @@ function ProfilePage() {
       {/* Hero Banner */}
       <Card className="relative mb-6 overflow-hidden">
         {/* Gradient banner with decorative elements */}
-        <div className="relative h-36 w-full overflow-hidden sm:h-44">
-          {/* Base gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-glow/80 to-primary" />
+        {/* Gradient banner with bold decorative design */}
+        <div className="relative h-40 w-full overflow-hidden sm:h-48">
+          {/* Animated gradient base */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: "linear-gradient(135deg, #0d4f4a 0%, #0f766e 20%, #14b8a6 45%, #0ea5e9 70%, #6366f1 100%)",
+              backgroundSize: "200% 200%",
+              animation: "gradientShift 8s ease-in-out infinite",
+            }}
+          />
 
-          {/* Animated mesh / decorative overlay */}
-          <svg className="absolute inset-0 h-full w-full opacity-[0.12]" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-                <circle cx="1" cy="1" r="1" fill="currentColor" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" className="text-white" />
+          {/* Bold wave SVG */}
+          <svg
+            className="absolute bottom-0 left-0 w-full"
+            viewBox="0 0 1440 160"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            preserveAspectRatio="none"
+            style={{ height: "80px" }}
+          >
+            <path
+              d="M0 64L48 69.3C96 75 192 85 288 101.3C384 117 480 139 576 138.7C672 139 768 117 864 101.3C960 85 1056 75 1152 80C1248 85 1344 107 1392 117.3L1440 128V160H1392C1344 160 1248 160 1152 160C1056 160 960 160 864 160C768 160 672 160 576 160C480 160 384 160 288 160C192 160 96 160 48 160H0V64Z"
+              fill="white"
+              fillOpacity="0.08"
+            />
+            <path
+              d="M0 96L48 101.3C96 107 192 117 288 122.7C384 128 480 128 576 117.3C672 107 768 85 864 80C960 75 1056 85 1152 96C1248 107 1344 117 1392 122.7L1440 128V160H1392C1344 160 1248 160 1152 160C1056 160 960 160 864 160C768 160 672 160 576 160C480 160 384 160 288 160C192 160 96 160 48 160H0V96Z"
+              fill="white"
+              fillOpacity="0.05"
+            />
           </svg>
 
-          {/* Decorative circles */}
-          <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-sm" />
-          <div className="absolute -left-6 -bottom-12 h-36 w-36 rounded-full bg-white/10 blur-sm" />
-          <div className="absolute right-1/4 top-4 h-20 w-20 rounded-full bg-white/5" />
-          <div className="absolute left-1/3 bottom-2 h-14 w-14 rounded-full border border-white/15" />
+          {/* Large geometric hexagons */}
+          <div
+            className="absolute -right-8 -top-8 h-44 w-44 opacity-[0.15]"
+            style={{
+              clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+              background: "linear-gradient(180deg, white 0%, transparent 100%)",
+            }}
+          />
+          <div
+            className="absolute right-20 top-2 h-24 w-24 opacity-[0.1]"
+            style={{
+              clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+              background: "linear-gradient(180deg, white 0%, transparent 100%)",
+            }}
+          />
+          <div
+            className="absolute left-[15%] -top-4 h-28 w-28 opacity-[0.08]"
+            style={{
+              clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+              background: "white",
+            }}
+          />
 
-          {/* Glowing accent orbs */}
-          <div className="absolute right-16 bottom-6 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_4px_rgba(255,255,255,0.25)]" />
-          <div className="absolute left-1/2 top-5 h-2 w-2 rounded-full bg-white/30 shadow-[0_0_8px_3px_rgba(255,255,255,0.2)]" />
+          {/* Bright bokeh-style glowing orbs */}
+          <div className="absolute right-[30%] top-6 h-5 w-5 rounded-full bg-white/50 shadow-[0_0_20px_8px_rgba(255,255,255,0.35)]" />
+          <div className="absolute right-[12%] bottom-16 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_16px_6px_rgba(255,255,255,0.3)]" />
+          <div className="absolute left-[20%] top-10 h-2.5 w-2.5 rounded-full bg-white/35 shadow-[0_0_14px_5px_rgba(255,255,255,0.25)]" />
+          <div className="absolute left-[55%] top-3 h-2 w-2 rounded-full bg-white/30 shadow-[0_0_10px_4px_rgba(255,255,255,0.2)]" />
+          <div className="absolute left-[40%] bottom-20 h-4 w-4 rounded-full bg-white/25 shadow-[0_0_18px_7px_rgba(255,255,255,0.2)]" />
 
-          {/* Diagonal accent line */}
-          <div className="absolute -left-4 top-0 h-full w-[120%] -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+          {/* Diagonal light slash */}
+          <div
+            className="absolute -left-16 top-0 h-full w-[60%] -skew-x-[25deg] opacity-100"
+            style={{ background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.07) 60%, transparent 100%)" }}
+          />
 
-          {/* Bottom vignette for smooth transition */}
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card/30 to-transparent" />
+          {/* Honeycomb pattern overlay */}
+          <svg className="absolute inset-0 h-full w-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="honeycomb" width="56" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(0.7)">
+                <path d="M28 66L0 50L0 16L28 0L56 16L56 50L28 66Z" fill="none" stroke="white" strokeWidth="1" />
+                <path d="M28 166L0 150L0 116L28 100L56 116L56 150L28 166Z" fill="none" stroke="white" strokeWidth="1" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#honeycomb)" />
+          </svg>
 
-          {/* Brand watermark */}
-          <div className="absolute right-6 top-1/2 -translate-y-1/2 font-display text-[3.5rem] font-bold leading-none tracking-tight text-white/[0.07] sm:text-[4.5rem]">
-            VendorBridge
-          </div>
+          {/* Floating ring */}
+          <div className="absolute right-[40%] top-8 h-16 w-16 rounded-full border-2 border-white/15" />
+          <div className="absolute left-[8%] bottom-10 h-10 w-10 rounded-full border border-white/10" />
+
+          {/* Bottom smooth fade */}
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card/50 to-transparent" />
         </div>
 
         <CardContent className="relative px-6 pb-6 pt-0">
