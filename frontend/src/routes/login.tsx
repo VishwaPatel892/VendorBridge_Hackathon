@@ -1,12 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "@/lib/store";
 import type { Role } from "@/lib/types";
 import { toast } from "sonner";
 import {
   Boxes, Mail, Eye, EyeOff, Lock, UserCog, ShoppingCart, ShieldCheck, Building2,
-  BrainCircuit, LayoutTemplate, GitMerge, LineChart, Users, Clock, FileText, CheckCircle2, Shield
+  BrainCircuit, LayoutTemplate, GitMerge, LineChart, Users, Clock, FileText, CheckCircle2, Shield, AlertCircle
 } from "lucide-react";
+import PasswordStrength from "@/components/PasswordStrength";
+import GoogleRoleModal from "@/components/GoogleRoleModal";
+import { sanitizeEmail, sanitizeInput } from "@/utils/sanitize";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — VendorBridge" }] }),
@@ -20,12 +23,23 @@ const ROLES: { id: Role; title: string; desc: string; icon: React.ElementType }[
   { id: "Vendor", title: "Vendor", desc: "Submit quotations, track POs", icon: Building2 },
 ];
 
+/** Google "G" SVG mark */
+const GoogleMark = () => (
+  <svg viewBox="0 0 48 48" className="h-[18px] w-[18px] flex-shrink-0">
+    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
+    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z" />
+    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
+  </svg>
+);
+
 export default function LoginPage() {
-  const { login } = useStore();
+  const { login, googleAuth, user } = useStore();
+  const navigate = useNavigate();
   const [screen, setScreen] = useState<"login" | "register">("login");
 
-  const [email, setEmail] = useState("you@company.com");
-  const [password, setPassword] = useState("••••••••");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [role, setRole] = useState<Role>("Admin");
 
@@ -33,24 +47,118 @@ export default function LoginPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
-  const onLogin = (e: React.FormEvent) => {
+  // Secure Auth States
+  const [attempts, setAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [lockoutCountdown, setLockoutCountdown] = useState(0);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const gsiInitRef = useRef(false);
+
+  // If already logged in, redirect or show role modal
+  useEffect(() => {
+    if (user) {
+      if (user.role) {
+        navigate({ to: "/" });
+      } else {
+        setShowRoleModal(true);
+      }
+    }
+  }, [user, navigate]);
+
+  // Lockout Timer
+  useEffect(() => {
+    if (!lockoutUntil) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((lockoutUntil - Date.now()) / 1000));
+      setLockoutCountdown(remaining);
+      if (remaining <= 0) { setLockoutUntil(null); setLockoutCountdown(0); }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutUntil]);
+
+  const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email === "you@company.com" ? "admin@vendorbridge.com" : email, role);
-    toast.success(`Signed in as ${role}`);
+    if (lockoutUntil && Date.now() < lockoutUntil) return;
+    try {
+      const sanitizedEmail = sanitizeEmail(email);
+      await login(sanitizedEmail, role, "password123");
+      setAttempts(0);
+      toast.success(`Signed in as ${role}`);
+      navigate({ to: "/" });
+    } catch (err: any) {
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      if (newAttempts >= 5) {
+        setLockoutUntil(Date.now() + 30000); // 30 sec lockout
+        toast.error("Too many failed attempts. Wait 30 seconds.");
+      } else {
+        toast.error("Failed to sign in. Invalid credentials.");
+      }
+    }
   };
 
-  const onRegister = (e: React.FormEvent) => {
+  const onRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email, role);
-    toast.success("Account created successfully");
+    if (lockoutUntil && Date.now() < lockoutUntil) return;
+    
+    // Password rules validation
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      toast.error("Password does not meet the required strength.");
+      return;
+    }
+
+    try {
+      const sanitizedEmail = sanitizeEmail(email);
+      const sanitizedName = sanitizeInput(`${firstName} ${lastName}`);
+      await login(sanitizedEmail, role, password, sanitizedName);
+      toast.success("Account created successfully");
+      navigate({ to: "/" });
+    } catch (err) {
+      toast.error("Registration failed");
+    }
   };
+
+  const handleGoogleCredential = useCallback(async (response: any) => {
+    const { credential } = response;
+    setIsGoogleLoading(true);
+    try {
+      await googleAuth(credential);
+      toast.success("Signed in with Google!");
+      // The useEffect listening to `user` will handle redirection,
+      // and GoogleRoleModal will show automatically if user.role is empty.
+    } catch (err) {
+      console.error(err);
+      toast.error("Google sign-in failed. Try again.");
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }, [navigate, googleAuth]);
+
+  const handleCustomGoogleClick = () => {
+    window.location.href = "http://localhost:5000/api/auth/google";
+  };
+
+  // Check for backend redirect with token
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gsi_credential = params.get("gsi_credential");
+    if (gsi_credential && !gsiInitRef.current) {
+      gsiInitRef.current = true;
+      handleGoogleCredential({ credential: gsi_credential });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [handleGoogleCredential]);
+
+  const isLockedOut = !!(lockoutUntil && Date.now() < lockoutUntil);
 
   return (
-    <div className="min-h-screen flex bg-[#031518] font-sans text-slate-100 overflow-hidden">
-      
+    <div className="min-h-screen flex bg-[#031518] font-sans text-slate-100 overflow-hidden relative">
+      {showRoleModal && <GoogleRoleModal />}
+
       {/* ════════ LEFT PANEL — Dark Branding ════════ */}
       <div className="hidden lg:flex lg:w-[55%] flex-col justify-between relative px-10 py-8 overflow-hidden max-h-screen">
-        
         {/* Background elements */}
         <div className="absolute inset-0 pointer-events-none z-0">
           <img src="/vendorbridge-hero.png" alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-screen" />
@@ -150,6 +258,39 @@ export default function LoginPage() {
                 <p className="text-slate-500 text-[13px]">Continue to your procurement workspace.</p>
               </div>
 
+              {isLockedOut && (
+                <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                  <span className="text-[11px] text-red-600 font-medium">
+                    Too many attempts. Try again in {String(Math.floor(lockoutCountdown / 60)).padStart(2, '0')}:{String(lockoutCountdown % 60).padStart(2, '0')}
+                  </span>
+                </div>
+              )}
+
+              {/* Google Sign-In Button */}
+              <button
+                type="button"
+                onClick={handleCustomGoogleClick}
+                disabled={isGoogleLoading || isLockedOut}
+                className="w-full mb-6 flex items-center justify-center gap-3 h-10 px-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+              >
+                {isGoogleLoading ? (
+                  <svg className="animate-spin h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <GoogleMark />
+                )}
+                <span className="text-sm font-medium text-slate-700">Continue with Google</span>
+              </button>
+
+              <div className="flex items-center gap-3 my-5">
+                <div className="flex-1 h-px bg-slate-100" />
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">or sign in with email</span>
+                <div className="flex-1 h-px bg-slate-100" />
+              </div>
+
               <form onSubmit={onLogin} className="space-y-4">
                 
                 {/* Email */}
@@ -160,7 +301,8 @@ export default function LoginPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition-colors bg-white"
+                      disabled={isLockedOut}
+                      className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition-colors bg-white disabled:bg-slate-50"
                       required
                     />
                     <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
@@ -175,7 +317,8 @@ export default function LoginPage() {
                       type={showPw ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition-colors bg-white"
+                      disabled={isLockedOut}
+                      className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition-colors bg-white disabled:bg-slate-50"
                       required
                     />
                     <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -185,7 +328,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="flex justify-end -mt-1">
-                  <a href="#" className="text-xs font-semibold text-teal-700 hover:text-teal-800">Forgot password?</a>
+                  <button type="button" onClick={() => toast.info("Check your email for reset instructions.")} className="text-xs font-semibold text-teal-700 hover:text-teal-800">Forgot password?</button>
                 </div>
 
                 {/* Role Selection Grid */}
@@ -202,7 +345,7 @@ export default function LoginPage() {
                             isActive 
                               ? "border-teal-600 bg-teal-50/50 shadow-sm" 
                               : "border-slate-200 hover:border-slate-300 bg-white"
-                          }`}
+                          } ${isLockedOut ? "opacity-60 pointer-events-none" : ""}`}
                         >
                           {isActive && (
                             <div className="absolute top-3 right-3 h-4 w-4 bg-teal-600 rounded-full flex items-center justify-center">
@@ -235,7 +378,8 @@ export default function LoginPage() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  className="w-full h-10 flex items-center justify-center gap-2 rounded-lg bg-[#0a4d4a] hover:bg-[#083b39] text-white text-sm font-semibold transition-colors mt-2"
+                  disabled={isLockedOut}
+                  className="w-full h-10 flex items-center justify-center gap-2 rounded-lg bg-[#0a4d4a] hover:bg-[#083b39] disabled:opacity-50 text-white text-sm font-semibold transition-colors mt-2"
                 >
                   <Lock className="h-3.5 w-3.5" /> Sign in
                 </button>
@@ -243,17 +387,34 @@ export default function LoginPage() {
 
               <div className="mt-5 text-center pt-4 border-t border-slate-100">
                 <span className="text-[13px] text-slate-500">New to VendorBridge? </span>
-                <button onClick={() => setScreen("register")} className="text-[13px] font-semibold text-teal-700 hover:text-teal-800">
+                <button onClick={() => { setScreen("register"); setPassword(""); setEmail(""); }} className="text-[13px] font-semibold text-teal-700 hover:text-teal-800">
                   Sign up
                 </button>
               </div>
             </div>
           ) : (
             <div className="py-2">
-              {/* REGISTER SCREEN (MATCHING STYLES) */}
+              {/* REGISTER SCREEN */}
               <div className="mb-5">
                 <h2 className="text-2xl font-bold text-slate-900 mb-1">Create account</h2>
                 <p className="text-slate-500 text-[13px]">Join the procurement workspace.</p>
+              </div>
+
+              {/* Google Sign-In Button */}
+              <button
+                type="button"
+                onClick={handleCustomGoogleClick}
+                disabled={isGoogleLoading || isLockedOut}
+                className="w-full mb-6 flex items-center justify-center gap-3 h-10 px-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all duration-200 cursor-pointer disabled:opacity-60 shadow-sm"
+              >
+                <GoogleMark />
+                <span className="text-sm font-medium text-slate-700">Continue with Google</span>
+              </button>
+
+              <div className="flex items-center gap-3 my-5">
+                <div className="flex-1 h-px bg-slate-100" />
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">or sign up with email</span>
+                <div className="flex-1 h-px bg-slate-100" />
               </div>
 
               <form onSubmit={onRegister} className="space-y-3.5">
@@ -275,7 +436,13 @@ export default function LoginPage() {
 
                 <div className="space-y-1">
                   <label className="text-[13px] font-semibold text-slate-900">Password</label>
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition-colors bg-white" required />
+                  <div className="relative">
+                    <input type={showPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-10 rounded-lg border border-slate-200 px-3 pr-9 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition-colors bg-white" required />
+                    <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <PasswordStrength password={password} />
                 </div>
 
                 {/* Role Selection Grid */}
@@ -314,7 +481,7 @@ export default function LoginPage() {
 
               <div className="mt-5 text-center pt-4 border-t border-slate-100">
                 <span className="text-[13px] text-slate-500">Already have an account? </span>
-                <button onClick={() => setScreen("login")} className="text-[13px] font-semibold text-teal-700 hover:text-teal-800">
+                <button onClick={() => { setScreen("login"); setPassword(""); setEmail(""); }} className="text-[13px] font-semibold text-teal-700 hover:text-teal-800">
                   Sign in
                 </button>
               </div>

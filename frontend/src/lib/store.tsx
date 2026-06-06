@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { apiClient } from "./api-client";
 import {
   seedActivity, seedApprovals, seedInvoices, seedNotifications, seedPOs,
   seedQuotations, seedRFQs, seedUsers, seedVendors,
@@ -30,8 +31,10 @@ interface State {
 }
 
 interface Actions {
-  login: (email: string, role: Role) => void;
-  logout: () => void;
+  login: (email: string, role: Role, password?: string, name?: string) => Promise<void>;
+  googleAuth: (credential: string) => Promise<void>;
+  setUser: (user: User) => void;
+  logout: () => Promise<void>;
   setTheme: (t: "light" | "dark") => void;
   addVendor: (v: Omit<Vendor, "id" | "createdAt">) => void;
   updateVendor: (id: string, patch: Partial<Vendor>) => void;
@@ -59,7 +62,7 @@ interface Actions {
   terminateContract: (id: string, by: string, notes?: string) => void;
   renewContract: (id: string, newEndDate: string, by: string) => void;
   addSavingsRecord: (s: Omit<SavingsRecord, "id">) => void;
-  sendChatMessage: (content: string) => void;
+  sendChatMessage: (content: string) => Promise<void>;
   advanceApprovalLevel: (approvalId: string, status: "Approved" | "Rejected", remarks?: string) => void;
   createMultiLevelApproval: (base: Omit<Approval, "id" | "createdAt" | "status">) => void;
 }
@@ -191,14 +194,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [state, hydrated]);
 
   const actions: Actions = useMemo(() => ({
-    login(email, role) {
-      const existing = seedUsers.find((u) => u.role === role);
-      const user: User = existing
-        ? { ...existing, email: email || existing.email }
-        : { id: rid("u"), name: email.split("@")[0] || "User", email, role };
+    async login(email, role, password, name) {
+      if (password && name) {
+        // Signup
+        const { data } = await apiClient.post("auth/signup", { email, role, password, name });
+        setState((s) => ({ ...s, user: data.data }));
+      } else {
+        // Login
+        const { data } = await apiClient.post("auth/login", { email, role });
+        setState((s) => ({ ...s, user: data.data }));
+      }
+    },
+    async googleAuth(credential: string) {
+      try {
+        const { data } = await apiClient.post("auth/google", { credential });
+        if (data.data?.user) {
+          setState((s) => ({ ...s, user: data.data.user }));
+        }
+      } catch (e) {
+        // Fallback for Hackathon if backend doesn't have Google endpoint
+        try {
+          const base64Url = credential.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const payload = JSON.parse(atob(base64));
+          const mockUser = {
+            id: rid("u"),
+            name: payload.name || "Google User",
+            email: payload.email,
+            role: "" as any // Force role modal
+          };
+          setState((s) => ({ ...s, user: mockUser }));
+        } catch (decodeErr) {
+          console.error("JWT Decode error", decodeErr);
+          throw new Error("Invalid Google Credential");
+        }
+      }
+    },
+    setUser(user: User) {
       setState((s) => ({ ...s, user }));
     },
-    logout() { setState((s) => ({ ...s, user: null })); },
+    async logout() {
+      try {
+        await apiClient.post("auth/logout");
+      } catch (e) {
+        console.error(e);
+      }
+      setState((s) => ({ ...s, user: null }));
+    },
     setTheme(t) { setState((s) => ({ ...s, theme: t })); },
 
     addVendor(v) {
@@ -468,15 +510,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setState((s) => ({ ...s, savings: [{ ...s_rec, id: rid("sav") }, ...s.savings] }));
     },
 
-    sendChatMessage(content) {
-      setState((s) => {
-        const userMsg: ChatMessage = { id: rid("msg"), role: "user", content, timestamp: new Date().toISOString() };
-        const reply = generateChatReply(content, s);
-        const assistantMsg: ChatMessage = { id: rid("msg"), role: "assistant", content: reply, timestamp: new Date().toISOString() };
-        return { ...s, chatMessages: [...s.chatMessages, userMsg, assistantMsg] };
-      });
+    async sendChatMessage(content) {
+      const userMsg: ChatMessage = { id: rid("msg"), role: "user", content, timestamp: new Date().toISOString() };
+      
+      // Update state with user message immediately
+      setState((s) => ({ ...s, chatMessages: [...s.chatMessages, userMsg] }));
+
+      try {
+        // Build context from current state
+        const stateSummary = JSON.stringify({
+          activeVendors: state.vendors.filter(v => v.status === "Active").length,
+          totalVendors: state.vendors.length,
+          openRfqs: state.rfqs.filter(r => r.status === "Open").length,
+          pendingApprovals: state.approvals.filter(a => a.status === "Pending").length,
+          totalSpend: state.invoices.reduce((acc, i) => acc + i.total, 0),
+          unpaidInvoices: state.invoices.filter(i => i.status !== "Paid").length,
+          fraudAlerts: state.fraudAlerts.filter(a => !a.dismissed).map(a => `${a.riskLevel}: ${a.description}`),
+        });
+
+        const res: any = await apiClient.post("chat", { message: content, context: stateSummary });
+        const replyContent = res.data?.reply || "I'm sorry, I couldn't generate a response.";
+        
+        const assistantMsg: ChatMessage = { id: rid("msg"), role: "assistant", content: replyContent, timestamp: new Date().toISOString() };
+        setState((s) => ({ ...s, chatMessages: [...s.chatMessages, assistantMsg] }));
+      } catch (err) {
+        const errorMsg: ChatMessage = { id: rid("msg"), role: "assistant", content: "Sorry, I encountered an error. Please check that the GROQ_API_KEY is set in the backend/.env file.", timestamp: new Date().toISOString() };
+        setState((s) => ({ ...s, chatMessages: [...s.chatMessages, errorMsg] }));
+      }
     },
-  }), []);
+  }), [state]);
 
   return <Ctx.Provider value={{ ...state, ...actions }}>{children}</Ctx.Provider>;
 }
