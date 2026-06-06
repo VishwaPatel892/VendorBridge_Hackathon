@@ -59,25 +59,60 @@ function ProfilePage() {
 
       {/* Hero Banner */}
       <Card className="relative mb-6 overflow-hidden">
-        {/* Gradient banner */}
-        <div className="h-32 w-full bg-gradient-to-r from-primary via-primary-glow to-primary sm:h-40" />
+        {/* Gradient banner with decorative elements */}
+        <div className="relative h-36 w-full overflow-hidden sm:h-44">
+          {/* Base gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-glow/80 to-primary" />
 
-        <CardContent className="relative px-6 pb-6">
+          {/* Animated mesh / decorative overlay */}
+          <svg className="absolute inset-0 h-full w-full opacity-[0.12]" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                <circle cx="1" cy="1" r="1" fill="currentColor" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" className="text-white" />
+          </svg>
+
+          {/* Decorative circles */}
+          <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-sm" />
+          <div className="absolute -left-6 -bottom-12 h-36 w-36 rounded-full bg-white/10 blur-sm" />
+          <div className="absolute right-1/4 top-4 h-20 w-20 rounded-full bg-white/5" />
+          <div className="absolute left-1/3 bottom-2 h-14 w-14 rounded-full border border-white/15" />
+
+          {/* Glowing accent orbs */}
+          <div className="absolute right-16 bottom-6 h-3 w-3 rounded-full bg-white/40 shadow-[0_0_12px_4px_rgba(255,255,255,0.25)]" />
+          <div className="absolute left-1/2 top-5 h-2 w-2 rounded-full bg-white/30 shadow-[0_0_8px_3px_rgba(255,255,255,0.2)]" />
+
+          {/* Diagonal accent line */}
+          <div className="absolute -left-4 top-0 h-full w-[120%] -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+          {/* Bottom vignette for smooth transition */}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card/30 to-transparent" />
+
+          {/* Brand watermark */}
+          <div className="absolute right-6 top-1/2 -translate-y-1/2 font-display text-[3.5rem] font-bold leading-none tracking-tight text-white/[0.07] sm:text-[4.5rem]">
+            VendorBridge
+          </div>
+        </div>
+
+        <CardContent className="relative px-6 pb-6 pt-0">
           {/* Avatar overlapping the banner */}
-          <div className="relative -mt-14 flex flex-col gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:gap-6">
-            <div className="relative group">
-              <Avatar className="h-24 w-24 border-4 border-card shadow-lg sm:h-28 sm:w-28">
-                <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold sm:text-3xl">
+          <div className="relative -mt-16 flex flex-col gap-5 sm:-mt-[4.5rem] sm:flex-row sm:items-end sm:gap-6">
+            <div className="relative group shrink-0">
+              <Avatar className="h-28 w-28 border-[5px] border-card shadow-xl ring-2 ring-primary/20 sm:h-32 sm:w-32">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground text-2xl font-bold sm:text-3xl">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <button className="absolute bottom-1 right-1 grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-110 opacity-0 group-hover:opacity-100">
+              <button className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-110 hover:shadow-xl opacity-0 group-hover:opacity-100">
                 <Camera className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 pb-1">
+            <div className="flex-1 pt-2 pb-1 min-w-0">
               <h2 className="text-xl font-display font-bold text-foreground sm:text-2xl">{user?.name}</h2>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <p className="mt-0.5 text-sm text-muted-foreground">{user?.email}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <Badge variant="secondary" className="gap-1 text-xs">
                   <Shield className="h-3 w-3" />
                   {user?.role}
@@ -91,7 +126,7 @@ function ProfilePage() {
             <Button
               variant={isEditing ? "default" : "outline"}
               size="sm"
-              className="gap-1.5 self-start sm:self-end"
+              className="gap-1.5 self-start sm:self-end shrink-0"
               onClick={() => isEditing ? handleSave() : setIsEditing(true)}
             >
               {isEditing ? <><Save className="h-3.5 w-3.5" /> Save Changes</> : <><Pencil className="h-3.5 w-3.5" /> Edit Profile</>}
