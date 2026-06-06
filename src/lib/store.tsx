@@ -29,6 +29,8 @@ interface Actions {
   deleteVendor: (id: string) => void;
   addRFQ: (r: Omit<RFQ, "id" | "code" | "createdAt" | "createdBy">) => void;
   deleteRFQ: (id: string) => void;
+  sendRFQToVendors: (rfqId: string) => void;
+  saveRFQAsDraft: (rfqId: string) => void;
   submitQuotation: (q: Omit<Quotation, "id" | "submittedAt" | "status">) => void;
   decideApproval: (id: string, status: "Approved" | "Rejected", remarks?: string) => void;
   createPOFromQuotation: (quotationId: string) => PurchaseOrder | null;
@@ -42,7 +44,7 @@ interface Actions {
 
 const Ctx = createContext<(State & Actions) | null>(null);
 
-const KEY = "vendorbridge.v1";
+const KEY = "vendorbridge.v2";
 
 function load(): Partial<State> {
   if (typeof window === "undefined") return {};
@@ -122,6 +124,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     deleteRFQ(id) {
       setState((s) => ({ ...s, rfqs: s.rfqs.filter((r) => r.id !== id) }));
+    },
+
+    sendRFQToVendors(rfqId) {
+      setState((s) => {
+        const rfq = s.rfqs.find((r) => r.id === rfqId);
+        if (!rfq) return s;
+        const assignedVendors = s.vendors.filter((v) => rfq.assignedVendorIds.includes(v.id));
+        const newNotifications = assignedVendors.map((v) => ({
+          id: rid("n"),
+          type: "rfq" as const,
+          message: `${rfq.code} — ${rfq.title} has been sent to you for quotation`,
+          read: false,
+          createdAt: new Date().toISOString(),
+        }));
+        return {
+          ...s,
+          rfqs: s.rfqs.map((r) => r.id === rfqId ? { ...r, status: "Open" } : r),
+          notifications: [...newNotifications, ...s.notifications],
+          activity: [{
+            id: rid("l"),
+            user: s.user?.name || "Officer",
+            action: `Sent ${rfq.code} to ${assignedVendors.length} vendor(s)`,
+            module: "RFQ",
+            createdAt: new Date().toISOString(),
+          }, ...s.activity],
+        };
+      });
+    },
+
+    saveRFQAsDraft(rfqId) {
+      setState((s) => {
+        const rfq = s.rfqs.find((r) => r.id === rfqId);
+        if (!rfq) return s;
+        return {
+          ...s,
+          rfqs: s.rfqs.map((r) => r.id === rfqId ? { ...r, status: "Draft" } : r),
+          activity: [{
+            id: rid("l"),
+            user: s.user?.name || "Officer",
+            action: `Saved ${rfq.code} as Draft`,
+            module: "RFQ",
+            createdAt: new Date().toISOString(),
+          }, ...s.activity],
+        };
+      });
     },
 
     submitQuotation(q) {

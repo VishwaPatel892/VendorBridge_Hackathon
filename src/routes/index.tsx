@@ -38,7 +38,7 @@ function Dashboard() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
         <StatCard label="Vendors" value={vendors.length} icon={Building2} trend={`${vendors.filter(v => v.status === "Active").length} active`} />
         <StatCard label="Active RFQs" value={activeRFQs} icon={FileText} accent="primary" />
         <StatCard label="Pending Approvals" value={pendingApprovals} icon={ShieldCheck} accent="warning" />
@@ -130,6 +130,13 @@ function Dashboard() {
             </ul>
           </CardContent>
         </Card>
+      </div>
+
+      {/* ── Quick Action Buttons ── */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+        <Button asChild size="lg" className="w-full sm:w-auto min-w-[160px]"><Link to="/rfqs">New RFQ's</Link></Button>
+        <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto min-w-[160px]"><Link to="/vendors">Add Vendors</Link></Button>
+        <Button asChild size="lg" variant="outline" className="w-full sm:w-auto min-w-[160px]"><Link to="/invoices">View Invoices</Link></Button>
       </div>
     </div>
   );

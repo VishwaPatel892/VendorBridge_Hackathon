@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,6 +62,11 @@ function RFQsPage() {
   };
 
   const canCreate = user?.role !== "Vendor";
+
+  const { location } = useRouterState();
+  const isDetailView = /^\/rfqs\/.+/.test(location.pathname);
+
+  if (isDetailView) return <Outlet />;
 
   return (
     <div>
@@ -127,49 +132,123 @@ function RFQsPage() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>New RFQ</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label>Title</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Laptops for engineering team" />
-            </div>
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label>Description</Label>
-              <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
-            </div>
-            <div className="space-y-1.5"><Label>Quantity</Label><Input type="number" min={1} value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} /></div>
-            <div className="space-y-1.5"><Label>Unit</Label><Input value={unit} onChange={(e) => setUnit(e.target.value)} /></div>
-            <div className="space-y-1.5 sm:col-span-2"><Label>Deadline</Label><Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></div>
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label>Assign vendors</Label>
-              <div className="max-h-44 space-y-1 overflow-auto rounded-md border p-2">
-                {vendors.filter((v) => v.status === "Active").map((v) => (
-                  <label key={v.id} className="flex items-center gap-2 rounded p-1.5 hover:bg-muted">
-                    <Checkbox
-                      checked={selected.includes(v.id)}
-                      onCheckedChange={(c) => setSelected((prev) => c ? [...prev, v.id] : prev.filter((x) => x !== v.id))}
-                    />
-                    <span className="text-sm">{v.company} <span className="text-muted-foreground">· {v.category}</span></span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label>Attachment (optional)</Label>
-              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground hover:bg-muted">
-                <Paperclip className="h-4 w-4" />
-                {attachment ? `${attachment.name} · ${(attachment.size / 1024).toFixed(0)} KB` : "Click to attach a file"}
-                <input type="file" className="hidden" onChange={(e) => {
-                  const f = e.target.files?.[0]; if (f) setAttachment({ name: f.name, size: f.size });
-                }} />
-              </label>
+        <DialogContent className="max-w-[900px] bg-card p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-muted/30 px-6 py-4 border-b">
+            <DialogTitle className="text-xl font-bold">Create RFQ's</DialogTitle>
+            <p className="text-sm text-muted-foreground mt-0.5">new request for quotation</p>
+            
+            {/* Steps Indicator */}
+            <div className="mt-6 mb-2 flex items-center justify-between relative max-w-[600px]">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-border -z-10" />
+              {[1, 2, 3].map((step) => (
+                <div 
+                  key={step} 
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold border-2 bg-card
+                    ${step === 1 ? "border-primary text-primary" : "border-muted-foreground/30 text-muted-foreground"}`}
+                >
+                  {step}
+                </div>
+              ))}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save}>Create RFQ</Button>
-          </DialogFooter>
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* ── LEFT COLUMN ── */}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>RFQ's title*</Label>
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Office Furniture procurement Q2" />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <Label>Category</Label>
+                  <Input placeholder="Furniture" />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <Label>Deadline*</Label>
+                  <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <Label>Description</Label>
+                  <Textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ergonomic chairs and standing desks for 3rd floor" className="resize-none" />
+                </div>
+
+                <div className="pt-4 flex flex-col gap-2">
+                  <Button onClick={save} className="w-full sm:w-auto">Save & Send to Vendors</Button>
+                  <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Save as Draft</Button>
+                </div>
+              </div>
+
+              {/* ── RIGHT COLUMN ── */}
+              <div className="space-y-6">
+                
+                {/* Line Items */}
+                <div className="space-y-2">
+                  <Label>Line items</Label>
+                  <div className="rounded-lg border bg-card overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead className="h-8 py-1">Item</TableHead>
+                          <TableHead className="h-8 py-1 text-center">qty</TableHead>
+                          <TableHead className="h-8 py-1 text-center">Unit</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="py-2">Ergonomic chair</TableCell>
+                          <TableCell className="py-2 text-center">25</TableCell>
+                          <TableCell className="py-2 text-center">NOS</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="py-2">Standing desks</TableCell>
+                          <TableCell className="py-2 text-center">10</TableCell>
+                          <TableCell className="py-2 text-center">NOS</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                    <div className="p-2 border-t bg-muted/10">
+                      <Button variant="outline" size="sm" className="h-7 text-xs">+ add line item</Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assign Vendors */}
+                <div className="space-y-2">
+                  <Label className="uppercase text-xs tracking-wider text-muted-foreground">ASSIGN VENDORS</Label>
+                  <div className="rounded-lg border bg-card overflow-hidden">
+                    <div className="p-2 space-y-1 max-h-32 overflow-y-auto">
+                      {vendors.filter(v => v.status === "Active").slice(0, 2).map((v) => (
+                        <div key={v.id} className="flex items-center justify-between text-sm px-2 py-1.5 rounded-md hover:bg-muted">
+                          <span>{v.company}</span>
+                          <Trash2 className="h-3.5 w-3.5 text-muted-foreground cursor-pointer hover:text-destructive" />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-2 border-t bg-muted/10">
+                      <Button variant="outline" size="sm" className="h-7 text-xs">+ add vendor</Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Attachments */}
+                <div className="space-y-2">
+                  <Label>Attachments</Label>
+                  <label className="flex flex-col items-center justify-center cursor-pointer rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 text-sm text-muted-foreground hover:bg-muted/50 transition-colors">
+                    <Paperclip className="h-5 w-5 mb-2 opacity-50" />
+                    {attachment ? `${attachment.name} · ${(attachment.size / 1024).toFixed(0)} KB` : "Drag & drop files or click to upload"}
+                    <input type="file" className="hidden" onChange={(e) => {
+                      const f = e.target.files?.[0]; if (f) setAttachment({ name: f.name, size: f.size });
+                    }} />
+                  </label>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

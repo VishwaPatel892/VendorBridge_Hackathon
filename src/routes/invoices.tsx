@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,10 @@ function InvoicesPage() {
   const { invoices, vendors, user } = useStore();
   let list = invoices;
   if (user?.role === "Vendor" && user.vendorId) list = list.filter((i) => i.vendorId === user.vendorId);
+
+  const { location } = useRouterState();
+  const isDetailView = /^\/invoices\/.+/.test(location.pathname);
+  if (isDetailView) return <Outlet />;
 
   return (
     <div>

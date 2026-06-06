@@ -22,13 +22,22 @@ export interface Vendor {
   createdAt: string;
 }
 
+export interface LineItem {
+  id: string;
+  name: string;
+  qty: number;
+  unit: string;
+}
+
 export interface RFQ {
   id: string;
   code: string; // RFQ-2026-001
   title: string;
+  category: string;
   description: string;
   quantity: number;
   unit: string;
+  lineItems: LineItem[];
   deadline: string;
   status: "Draft" | "Open" | "Closed" | "Awarded";
   assignedVendorIds: string[];

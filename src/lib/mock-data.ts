@@ -15,10 +15,55 @@ export const seedVendors: Vendor[] = [
 ];
 
 export const seedRFQs: RFQ[] = [
-  { id: "r1", code: "RFQ-2026-001", title: "Laptops for Engineering Team", description: "30 units of mid-tier business laptops, 16GB RAM, SSD 512GB.", quantity: 30, unit: "units", deadline: daysAhead(5), status: "Open", assignedVendorIds: ["v2", "v3"], attachments: [{ name: "specs.pdf", size: 184320 }], createdAt: daysAgo(6), createdBy: "u2" },
-  { id: "r2", code: "RFQ-2026-002", title: "Steel Bars Q1 Restock", description: "TMT bars Fe 550, 12mm and 16mm.", quantity: 5000, unit: "kg", deadline: daysAhead(10), status: "Open", assignedVendorIds: ["v1", "v4"], attachments: [], createdAt: daysAgo(3), createdBy: "u2" },
-  { id: "r3", code: "RFQ-2026-003", title: "Office Furniture - 4th Floor", description: "Workstations, ergonomic chairs, meeting tables.", quantity: 40, unit: "sets", deadline: daysAhead(14), status: "Awarded", assignedVendorIds: ["v2"], attachments: [], createdAt: daysAgo(28), createdBy: "u2" },
-  { id: "r4", code: "RFQ-2026-004", title: "Last-mile Delivery Contract", description: "3-month pilot for inter-city same-day delivery.", quantity: 1, unit: "contract", deadline: daysAhead(2), status: "Open", assignedVendorIds: ["v5"], attachments: [], createdAt: daysAgo(1), createdBy: "u2" },
+  {
+    id: "r1", code: "RFQ-2026-001", title: "Laptops for Engineering Team",
+    category: "Electronics",
+    description: "30 units of mid-tier business laptops, 16GB RAM, SSD 512GB.",
+    quantity: 30, unit: "units",
+    lineItems: [
+      { id: "li1", name: "Business Laptop 16GB RAM", qty: 25, unit: "NOS" },
+      { id: "li2", name: "Laptop Bags", qty: 25, unit: "NOS" },
+      { id: "li3", name: "USB-C Docking Station", qty: 10, unit: "NOS" },
+    ],
+    deadline: daysAhead(5), status: "Open", assignedVendorIds: ["v2", "v3"],
+    attachments: [{ name: "specs.pdf", size: 184320 }], createdAt: daysAgo(6), createdBy: "u2",
+  },
+  {
+    id: "r2", code: "RFQ-2026-002", title: "Steel Bars Q1 Restock",
+    category: "Industrial",
+    description: "TMT bars Fe 550, 12mm and 16mm.",
+    quantity: 5000, unit: "kg",
+    lineItems: [
+      { id: "li4", name: "TMT Bar 12mm Fe550", qty: 3000, unit: "kg" },
+      { id: "li5", name: "TMT Bar 16mm Fe550", qty: 2000, unit: "kg" },
+    ],
+    deadline: daysAhead(10), status: "Open", assignedVendorIds: ["v1", "v4"],
+    attachments: [], createdAt: daysAgo(3), createdBy: "u2",
+  },
+  {
+    id: "r3", code: "RFQ-2026-003", title: "Office Furniture - 4th Floor",
+    category: "Furniture",
+    description: "Workstations, ergonomic chairs, meeting tables.",
+    quantity: 40, unit: "sets",
+    lineItems: [
+      { id: "li6", name: "Ergonomic Chair", qty: 25, unit: "NOS" },
+      { id: "li7", name: "Standing Desk", qty: 10, unit: "NOS" },
+      { id: "li8", name: "Meeting Table (8-seater)", qty: 2, unit: "NOS" },
+    ],
+    deadline: daysAhead(14), status: "Awarded", assignedVendorIds: ["v2"],
+    attachments: [], createdAt: daysAgo(28), createdBy: "u2",
+  },
+  {
+    id: "r4", code: "RFQ-2026-004", title: "Last-mile Delivery Contract",
+    category: "Logistics",
+    description: "3-month pilot for inter-city same-day delivery.",
+    quantity: 1, unit: "contract",
+    lineItems: [
+      { id: "li9", name: "Same-day City Delivery", qty: 1, unit: "Contract" },
+    ],
+    deadline: daysAhead(2), status: "Open", assignedVendorIds: ["v5"],
+    attachments: [], createdAt: daysAgo(1), createdBy: "u2",
+  },
 ];
 
 export const seedQuotations: Quotation[] = [
